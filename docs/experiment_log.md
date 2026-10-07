@@ -26,3 +26,11 @@ What I built:
 Gaps are listed in `docs/open_questions.md`.
 
 Next: run the smoke test on one L40S.
+
+## 2026-10-07: smoke test, first try failed
+
+- The job stopped before the first clip. It could not find Qwen2.5-VL-7B.
+- Cause: the SCC `~/.bashrc` sets `TRANSFORMERS_CACHE` to the herbdl folder,
+  which overrides our model cache.
+- Fix: the script now points all Hugging Face caches at
+  `/projectnb/proactiveai/model_cache` itself. Relaunched.

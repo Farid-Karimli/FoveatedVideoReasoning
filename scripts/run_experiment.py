@@ -16,6 +16,13 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+# The SCC login profile sets TRANSFORMERS_CACHE to another project's folder, and
+# transformers prefers it over HF_HOME. Point every HF cache at HF_HOME/hub
+# before importing transformers.
+if "HF_HOME" in os.environ:
+    for var in ("HF_HUB_CACHE", "TRANSFORMERS_CACHE"):
+        os.environ[var] = os.path.join(os.environ["HF_HOME"], "hub")
+
 import numpy as np
 import torch
 import yaml
@@ -30,7 +37,7 @@ def git_commit() -> str:
     try:
         return subprocess.check_output(["git", "rev-parse", "HEAD"], text=True, stderr=subprocess.DEVNULL).strip()
     except Exception:
-        return os.environ.get("ORX_COMMIT", "unknown")
+        return "unknown (orx run " + os.environ.get("ORX_RUN_ID", "?") + ")"
 
 
 def main(cfg_path: str) -> None:
