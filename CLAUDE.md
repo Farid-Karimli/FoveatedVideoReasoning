@@ -55,6 +55,7 @@ The fair comparison is always against "Full, downsampled" at the same token coun
 - **Gaze predictor:** the EgoGazeLite code, `github.com/m4tteo3000/EgoGazeLite`.
 - **Sampling:** 1 fps to start. Keep frame count fixed across conditions so only the spatial allocation changes.
 - **Compute:** BU Shared Computing Cluster. No fine-tuning in this phase.
+- **Storage:** data and models live on the SCC, not in git. Data: `/projectnb/proactiveai/data`. Model cache: `/projectnb/proactiveai/model_cache`.
 
 ## Datasets
 
