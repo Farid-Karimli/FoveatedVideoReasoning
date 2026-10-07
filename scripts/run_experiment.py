@@ -44,7 +44,7 @@ def main(cfg_path: str) -> None:
     cfg = yaml.safe_load(open(cfg_path))
     torch.manual_seed(cfg["seed"])
     np.random.seed(cfg["seed"])
-    device = "cuda"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     full_hw = views.grid_px(tuple(cfg["full_grid"]))
     budgets = {name: tuple(g) for name, g in cfg["budgets"].items()}
 
@@ -59,7 +59,7 @@ def main(cfg_path: str) -> None:
 
     vlm = QwenVL(cfg["model"]["id"])
     gaze_model = None
-    if any(c["signal"] == "gaze_predicted" for c in cfg["conditions"]):
+    if any(c.get("signal") == "gaze_predicted" for c in cfg["conditions"]):
         from fovea.gaze_egogazelite import load_gaze_model, predict_gaze
         gaze_model = load_gaze_model(cfg["gaze"]["checkpoint"], device)
 

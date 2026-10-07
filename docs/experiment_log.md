@@ -34,3 +34,13 @@ Next: run the smoke test on one L40S.
   which overrides our model cache.
 - Fix: the script now points all Hugging Face caches at
   `/projectnb/proactiveai/model_cache` itself. Relaunched.
+
+## 2026-10-07: smoke test, second try failed
+
+- The model loaded this time. Then the script crashed on a bug in my code: it
+  looked for a `signal` field on the full-frame condition, which has none.
+- Fix: use a safe lookup. I then ran the whole script on the login node for 2 clips,
+  with a fake model in place of Qwen. Everything else worked: frames, gaze,
+  crops, scoring, summary. Token counts matched the plan in every condition
+  (4784 full, 448 at the 9% budget, 1344 at the 28% budget).
+- Not yet relaunched: two failed runs in a row, so I am checking with Farid first.
