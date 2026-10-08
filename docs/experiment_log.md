@@ -89,3 +89,34 @@ Next:
   720p frames made from them, so crops have real detail to gain.
 - Step 2 (oracle crop) needs evidence boxes. CaptainCook4D has none. Checking
   the other datasets.
+
+## 2026-10-08: what happened between step 1 and the full map
+
+- More data:
+  - CaptainCook4D: downloaded 4K versions of the 11 smoke-test recordings plus
+    26 more recordings picked at random across recipes. 3 more were planned but
+    their download was cut off by my mistake (I overwrote the file list the
+    download job was reading); I dropped them rather than wait.
+  - HD-EPIC: downloading all 156 videos (124 GB) plus eye-gaze files. It has
+    real eye gaze and object boxes, so it gives us the measured-gaze and
+    oracle conditions that CaptainCook4D cannot.
+- CaptainCook4D has no eye gaze at all: I opened its HoloLens tracking file and
+  the eye-gaze field is empty in all 23,224 records.
+- A mistake on my side: I ran a CPU test on the SCC login node and the SCC killed
+  it (more than 15 min of CPU). Everything long now goes through batch jobs.
+- Task taxonomy written to `docs/task_taxonomy.md` before any step-3 run.
+- Pipeline test on one GPU (2 clips, all 21 conditions, real Qwen): token check
+  passed everywhere. A full-frame call takes about 12 s (about 19K visual tokens
+  for 32 frames at 720p); the 10% and 25% conditions take 0.4 s and 1.4 s.
+  The object detector found the named objects in 36% to 100% of frames.
+
+## 2026-10-08: step 3 (full map) on CaptainCook4D launched
+
+Run 078b8b11, one L40S, about 10 hours expected.
+- 37 recordings, every step at least 4 s long, two tasks per step:
+  "which step is this?" (5 options) and "was there a mistake in this step?" (yes/no).
+- Full frame is 720p (1288x728). Budgets: 10% and 25% of the full token count.
+- 21 conditions: full; shrunk whole frame; crops at centre, random, predicted
+  gaze, named objects, gaze+objects; and each pointing crop again with a small
+  shrunk whole frame added (crop + periphery), all at the same token total.
+  So this run also covers step 4 (periphery) for this dataset.
