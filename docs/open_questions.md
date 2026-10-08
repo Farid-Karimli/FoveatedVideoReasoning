@@ -18,7 +18,13 @@ says what we did about it for now. Farid decides the real fix.
   HoloLens2 depth, IMU, head and hand tracking, but not eye gaze.
 - What we did: predicted gaze only, as CLAUDE.md already says for this case.
   The "gaze crop, measured" condition cannot run on CaptainCook4D.
-- To confirm: whether the full HoloLens2 release has eye gaze after all.
+- Checked 2026-10-07: the HoloLens2 "spatial" pickle (hl2ss spatial-input format)
+  for recording 4_2 has 23,224 records. The eye-gaze valid bit is never set and
+  the eye-ray fields are zero. Head pose and hand joints are present. So
+  CaptainCook4D has no measured gaze, at least in the released files. The
+  official downloader lists no gaze stream either.
+- Hand joints exist (HoloLens coordinates, not GoPro). They could become a
+  "hands" pointing signal later, on the HoloLens PV video only.
 
 ## 2026-10-07: CaptainCook4D has no question-answer items
 
@@ -52,3 +58,28 @@ says what we did about it for now. Farid decides the real fix.
   A 28%-budget crop already covers 196x336 pixels, more than a quarter of the
   frame. Foveation has little resolution to gain at 360p.
 - Needs a decision: download higher-resolution GoPro video for the real map.
+  The 4K GoPro files exist in the official downloader (about 4.4 GB per
+  recording, so about 50 GB for the 11 local recordings).
+
+## 2026-10-08: other datasets, checked against their own pages
+
+- **StreamGaze** (HF `daeunni/StreamGaze`, CC BY 4.0, open): 8,521 QA items, 10
+  task types, 2D gaze in CSVs. No videos: they must come from EGTEA Gaze+,
+  EgoExoLearn and HoloAssist separately. No evidence boxes. Not downloaded yet.
+- **EgoGazeVQA** (HF `taiyi09/EgoGazeVQA`, gated): 1,757 items, 5 options. Most
+  videos come from Ego4D / EgoExo4D, which need a signed licence. Skipped for now.
+- **HoloAssist** (CDLA v2, open): gaze 2.45 GB, full-res video 184 GB, mistake
+  labels. No evidence boxes. Not downloaded yet.
+- **HD-EPIC** (data.bris, readme says CC BY-NC 4.0, open): downloading all 156
+  MP4s (124 GB) and the MPS gaze files. 26K 5-way questions.
+  - Evidence: no per-question evidence box. But every object movement has a box at
+    its pick-up and put-down frame. 7,186 of 10,000 fine-grained action questions
+    have such a box inside their time window. We use the union of those boxes as
+    the oracle region (an approximation: it marks the moved object, not
+    necessarily all the evidence, and it is held fixed over the 1-3 s window).
+  - Gaze: Aria MPS yaw/pitch in the glasses' frame, 10 Hz, not pixels. Projected
+    into the MP4 with each video's camera calibration, read from the first 200 MB
+    of its VRS file (scripts/prep_hdepic_gaze.py). Orientation (raw vs upright)
+    to be checked by eye.
+  - Videos are 1408x1408 fisheye. Segments are 1-10 s, so we take a fixed 8
+    frames per segment instead of 1 fps (1 fps would give 1-3 frames).

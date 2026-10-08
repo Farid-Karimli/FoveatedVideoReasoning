@@ -65,3 +65,51 @@ def expected_tokens(n_frames: int, frame_hw: tuple[int, int]) -> int:
     H, W = frame_hw
     assert H % CELL == 0 and W % CELL == 0, (H, W)
     return (n_frames // 2) * (H // CELL) * (W // CELL)
+
+
+def fit_region(box: tuple[float, float, float, float], grid: tuple[int, int],
+               frame_hw: tuple[int, int]) -> tuple[int, int, int, int]:
+    """Smallest window with the grid's aspect ratio that contains `box` and is at
+    least the grid's pixel size, shifted to stay inside the frame.
+
+    A point is a zero-size box, so a point gives exactly the native-scale window.
+    A large box gives a bigger window that `crop_regions` then shrinks to the grid.
+    """
+    gh, gw = grid_px(grid)
+    H, W = frame_hw
+    x0, y0, x1, y1 = box
+    bw, bh = max(x1 - x0, 1.0), max(y1 - y0, 1.0)
+    scale = max(1.0, bw / gw, bh / gh)
+    scale = min(scale, W / gw, H / gh)  # never bigger than the frame
+    ww, wh = gw * scale, gh * scale
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    wx0 = float(np.clip(cx - ww / 2, 0, W - ww))
+    wy0 = float(np.clip(cy - wh / 2, 0, H - wh))
+    return int(round(wx0)), int(round(wy0)), int(round(wx0 + ww)), int(round(wy0 + wh))
+
+
+def crop_regions(frames: np.ndarray, boxes: np.ndarray, grid: tuple[int, int]) -> tuple[np.ndarray, np.ndarray]:
+    """Crop one region per frame (see fit_region) and resize it to the budget grid."""
+    gh, gw = grid_px(grid)
+    out, used = [], []
+    for f, b in zip(frames, boxes):
+        x0, y0, x1, y1 = fit_region(tuple(b), grid, f.shape[:2])
+        win = f[y0:y1, x0:x1]
+        if win.shape[:2] != (gh, gw):
+            win = cv2.resize(win, (gw, gh), interpolation=cv2.INTER_AREA)
+        out.append(win)
+        used.append((x0, y0, x1, y1))
+    return np.stack(out), np.array(used)
+
+
+def points_to_boxes(points: np.ndarray) -> np.ndarray:
+    """(x, y) points -> zero-size boxes."""
+    return np.concatenate([points, points], axis=1)
+
+
+def random_points(n: int, frame_hw: tuple[int, int], grid: tuple[int, int], seed: int) -> np.ndarray:
+    """Random-crop control: one uniformly placed window per frame, seeded per item."""
+    rng = np.random.default_rng(seed)
+    H, W = frame_hw
+    gh, gw = grid_px(grid)
+    return np.stack([rng.uniform(gw / 2, W - gw / 2, n), rng.uniform(gh / 2, H - gh / 2, n)], axis=1)

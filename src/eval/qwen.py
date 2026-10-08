@@ -23,12 +23,18 @@ class QwenVL:
         self.video_pad_id = self.processor.tokenizer.convert_tokens_to_ids("<|video_pad|>")
 
     @torch.no_grad()
-    def answer(self, frames: np.ndarray, prompt: str, fps: float, max_new_tokens: int = 8) -> dict:
-        """Run one multiple-choice query. frames: (T, H, W, 3) uint8 RGB."""
-        messages = [{"role": "user", "content": [{"type": "video"}, {"type": "text", "text": prompt}]}]
-        text = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-        inputs = self.processor(text=[text], videos=[list(frames)], do_resize=False, fps=[fps],
-                                return_tensors="pt").to(self.device)
+    def answer(self, videos: list[np.ndarray], prompt: str, fps: float, max_new_tokens: int = 8) -> dict:
+        """Run one multiple-choice query.
+
+        videos: one or more frame stacks, each (T, H, W, 3) uint8 RGB. Several stacks
+        (e.g. coarse periphery + crop) go in as consecutive video slots before the
+        same question text, so the prompt wording never changes between conditions.
+        """
+        content = [{"type": "video"} for _ in videos] + [{"type": "text", "text": prompt}]
+        text = self.processor.apply_chat_template([{"role": "user", "content": content}], tokenize=False,
+                                                  add_generation_prompt=True)
+        inputs = self.processor(text=[text], videos=[list(v) for v in videos], do_resize=False,
+                                fps=[fps] * len(videos), return_tensors="pt").to(self.device)
         n_visual = int((inputs["input_ids"] == self.video_pad_id).sum())
         torch.cuda.synchronize()
         t0 = time.perf_counter()

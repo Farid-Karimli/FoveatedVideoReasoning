@@ -44,3 +44,48 @@ Next: run the smoke test on one L40S.
   crops, scoring, summary. Token counts matched the plan in every condition
   (4784 full, 448 at the 9% budget, 1344 at the 28% budget).
 - Not yet relaunched: two failed runs in a row, so I am checking with Farid first.
+
+## 2026-10-07: smoke test, third try worked (step 1 done)
+
+Run 503f5ee1. 50 step clips, 5-way "which step is this?", Qwen2.5-VL-7B.
+
+Token check: passed. On every one of the 50 clips, all conditions at the same
+budget saw exactly the same number of visual tokens (measured from the model
+input, not computed). Clips have 4 to 32 frames (14 of 50 hit the 32 cap), so
+the token count differs between clips but not between conditions on one clip.
+
+Accuracy (50 clips, so the ranges are wide; 95% bootstrap ranges in brackets):
+
+| Condition | Tokens vs full | Accuracy |
+| --- | --- | --- |
+| Full frame, 360p | 100% | 72% [60, 84] |
+| Shrunk whole frame | 9.4% | 46% [32, 60] |
+| Crop at predicted gaze | 9.4% | 48% [34, 60] |
+| Crop at centre | 9.4% | 58% [44, 72] |
+| Shrunk whole frame | 28.1% | 62% [48, 74] |
+| Crop at predicted gaze | 28.1% | 66% [52, 80] |
+| Crop at centre | 28.1% | 70% [56, 82] |
+
+What this says, plainly:
+- Shrinking the frame costs accuracy: 72% down to 46% at 9% of the tokens.
+- At the same token count, cropping is at least as good as shrinking. The centre
+  crop is the best of the three at both budgets (+12 points over shrinking at
+  9.4%, range -4 to +28; +8 at 28.1%, range 0 to +18). With 50 clips none of
+  these gaps is clearly above zero.
+- Predicted gaze did no better than shrinking, and worse than a plain centre
+  crop. Likely reasons: the gaze model never sees real gaze here (it is fed its
+  own guesses), and it was trained on a different camera. So on this data,
+  "predicted gaze" is not yet a useful pointing signal.
+- Gaze prediction adds about 4.5 s per clip (10 fps over the whole step), more than
+  the VLM call itself (0.1 to 1.2 s).
+
+Caveats: one recipe, 11 videos, 360p, our own task, 50 clips.
+
+Check-in with Farid (CLAUDE.md asks for one after step 1): Farid said to keep
+going through the whole plan, so I continue and log each step here.
+
+Next:
+- The 4K GoPro files for the same 11 videos are downloaded. Step 3 will use
+  720p frames made from them, so crops have real detail to gain.
+- Step 2 (oracle crop) needs evidence boxes. CaptainCook4D has none. Checking
+  the other datasets.
