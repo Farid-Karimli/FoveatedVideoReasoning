@@ -16,7 +16,7 @@ dataset:
   video_suffix: _4k.mp4
   gaze_video: /projectnb/proactiveai/data/captaincook4d/gopro/360p/{rec}_360p.mp4
   frame_cache: /projectnb/proactiveai/data/captaincook4d/frames_cache
-  decode_workers: 12
+  decode_workers: 4   # 12 parallel 4K HEVC decoders used 33 GB and the job was killed
   tasks: [step_recognition, error_detection]
   n_options: 5
   min_duration_s: 4.0
