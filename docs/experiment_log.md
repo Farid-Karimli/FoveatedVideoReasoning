@@ -133,3 +133,13 @@ Run 078b8b11, one L40S, about 10 hours expected.
   artifacts/checks/hdepic_gaze_projection_check.jpg). Gaze for all videos will be
   projected once the HD-EPIC download finishes (68 of 156 videos so far; the
   first download job hit its 12 h limit, a second one is running).
+
+## 2026-10-09: full map, second try killed (out of memory)
+
+- Run 8f545c7b found all 511 step segments (1,022 items), then was killed
+  after 7 minutes while pulling frames out of the 4K videos: 12 video readers
+  at once used 33 GB of memory. No item was scored.
+- Fix: 4 readers at once. Frames already pulled (131 segments) are kept on disk
+  and reused. Relaunched as run 025afbdb.
+- Step 2 (oracle pass) set up on HD-EPIC participants P01 and P02, the two whose
+  videos had fully downloaded. Being checked with a short GPU test first.
