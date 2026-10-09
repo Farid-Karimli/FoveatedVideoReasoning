@@ -1,7 +1,6 @@
-# Step 2 (oracle pass) on HD-EPIC. Question: does a crop around annotated
-# evidence beat shrinking the whole frame at the same token count? If not
-# anywhere, foveation has no ceiling here (CLAUDE.md stop rule).
-name: oracle_hdepic_p01p02
+# Step 3 (+ step 4 periphery) on HD-EPIC: all pointing signals at matched tokens,
+# with measured eye gaze (Aria MPS, projected into the frames) and oracle boxes.
+name: fullmap_hdepic_p01p03
 seed: 0
 out_root: /projectnb/proactiveai/results/foveated
 
@@ -13,20 +12,22 @@ dataset:
   root: /projectnb/proactiveai/data/hd-epic
   frame_cache: /projectnb/proactiveai/data/hd-epic/frames_cache
   gaze_dir: /projectnb/proactiveai/data/hd-epic/gaze_projected
-  gaze_orientation: up
-  decode_workers: 4   # 12 parallel decoders ran out of memory on CaptainCook4D 4K
-  participants: ["P01", "P02"]   # fully downloaded at launch
-  # n = items drawn at random (seed 0) among those with an oracle box in the window.
+  gaze_orientation: up        # checked by eye, docs/open_questions.md
+  decode_workers: 4
+  participants: ["P01", "P02", "P03"]   # fully downloaded at launch
+  # n = items drawn at random (seed 0). Fine-grained types keep only items with an
+  # oracle box, so coverage can be measured; gaze types have none.
   tasks:
     fine_grained_action_recognition: {n: 400, require_oracle: true}
     fine_grained_how_recognition: {n: 400, require_oracle: true}
     fine_grained_why_recognition: {n: 400, require_oracle: true}
+    gaze_gaze_estimation: {n: 300}
+    gaze_interaction_anticipation: {n: 300}
 
 sampling:
-  frames_per_segment: 8   # segments are 1-3 s; 1 fps would give 1-3 frames
-  fps: 4.0                # passed to Qwen for its time positions; same for every condition
+  frames_per_segment: 8
+  fps: 4.0
 
-# Frames are 1408x1408 fisheye, resized to 1008x1008 = 36x36 = 1296 tokens per frame pair.
 full_grid: [36, 36]
 budgets:
   b10: [11, 11]   # 121 tokens = 9.3% of full
@@ -35,13 +36,37 @@ periphery_splits:
   b10: {periphery: [5, 5], crop: [8, 12]}     # 25 + 96 = 121
   b25: {periphery: [8, 8], crop: [13, 20]}    # 64 + 260 = 324
 
+# The gaze+object signal uses measured gaze here.
+gaze_object_source: gaze_measured
+
+detector:
+  id: IDEA-Research/grounding-dino-tiny
+  box_threshold: 0.3
+  text_threshold: 0.25
+
 conditions:
   - {name: full, view: full}
   - {name: down_b10, view: downsample, budget: b10}
   - {name: down_b25, view: downsample, budget: b25}
-  - {name: oracle_b10, view: crop, signal: oracle, budget: b10}
-  - {name: oracle_b25, view: crop, signal: oracle, budget: b25}
-  - {name: oracle_per_b10, view: crop_periphery, signal: oracle, budget: b10}
-  - {name: oracle_per_b25, view: crop_periphery, signal: oracle, budget: b25}
   - {name: centre_b10, view: crop, signal: centre, budget: b10}
   - {name: centre_b25, view: crop, signal: centre, budget: b25}
+  - {name: random_b10, view: crop, signal: random, budget: b10}
+  - {name: random_b25, view: crop, signal: random, budget: b25}
+  - {name: gaze_b10, view: crop, signal: gaze_measured, budget: b10}
+  - {name: gaze_b25, view: crop, signal: gaze_measured, budget: b25}
+  - {name: object_b10, view: crop, signal: object, budget: b10}
+  - {name: object_b25, view: crop, signal: object, budget: b25}
+  - {name: gazeobj_b10, view: crop, signal: gaze_object, budget: b10}
+  - {name: gazeobj_b25, view: crop, signal: gaze_object, budget: b25}
+  - {name: oracle_b10, view: crop, signal: oracle, budget: b10}
+  - {name: oracle_b25, view: crop, signal: oracle, budget: b25}
+  - {name: centre_per_b10, view: crop_periphery, signal: centre, budget: b10}
+  - {name: centre_per_b25, view: crop_periphery, signal: centre, budget: b25}
+  - {name: gaze_per_b10, view: crop_periphery, signal: gaze_measured, budget: b10}
+  - {name: gaze_per_b25, view: crop_periphery, signal: gaze_measured, budget: b25}
+  - {name: object_per_b10, view: crop_periphery, signal: object, budget: b10}
+  - {name: object_per_b25, view: crop_periphery, signal: object, budget: b25}
+  - {name: gazeobj_per_b10, view: crop_periphery, signal: gaze_object, budget: b10}
+  - {name: gazeobj_per_b25, view: crop_periphery, signal: gaze_object, budget: b25}
+  - {name: oracle_per_b10, view: crop_periphery, signal: oracle, budget: b10}
+  - {name: oracle_per_b25, view: crop_periphery, signal: oracle, budget: b25}
