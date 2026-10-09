@@ -168,6 +168,8 @@ def main(cfg_path: str) -> None:
                        "answer": it.answer, "correct": pred == it.answer, "error_types": s.error_types}
                 if used is not None:
                     row["boxes"] = used.tolist()
+                if oracle is not None:
+                    row["oracle_box"] = oracle[0].tolist()  # evidence region (fixed over the window)
                 if c.get("signal") in ("gaze_predicted", "gaze_object"):
                     row["gaze_latency_s"] = item_extra.get("gaze_latency_s")
                 if c.get("signal") in ("object", "gaze_object"):

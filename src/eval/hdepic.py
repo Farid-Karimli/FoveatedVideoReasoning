@@ -76,6 +76,8 @@ class HDEpic:
                         if m:
                             self.events[vid].append((m["frame_number"] / 30.0, m["bbox"]))
         have_video = {p.stem for p in (root / "Videos").glob("*/*.mp4")}
+        if d.get("participants"):  # restrict to whole participants (e.g. those fully downloaded)
+            have_video = {v for v in have_video if v.split("-")[0] in d["participants"]}
 
         rng = random.Random(seed)
         self.segments, self.items, segs = [], [], {}

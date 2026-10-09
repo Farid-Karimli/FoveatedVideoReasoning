@@ -1,8 +1,7 @@
-# Step 3 (full map) on CaptainCook4D, plus step 4 (periphery) since every crop
-# also runs with a coarse periphery at the same total token count.
-# Frames: 4K GoPro -> 720p (1288x728). Gaze is predicted on the 360p copy of the
-# same recording (identical frame count and rate).
-name: fullmap_cc4d_720p
+# Step 2 (oracle pass) on HD-EPIC. Question: does a crop around annotated
+# evidence beat shrinking the whole frame at the same token count? If not
+# anywhere, foveation has no ceiling here (CLAUDE.md stop rule).
+name: oracle_hdepic_p01p02
 seed: 0
 out_root: /projectnb/proactiveai/results/foveated
 
@@ -10,63 +9,39 @@ model:
   id: Qwen/Qwen2.5-VL-7B-Instruct
 
 dataset:
-  name: captaincook4d
-  root: /projectnb/proactiveai/data/captaincook4d
-  video_dir: gopro/4k
-  video_suffix: _4k.mp4
-  gaze_video: /projectnb/proactiveai/data/captaincook4d/gopro/360p/{rec}_360p.mp4
-  frame_cache: /projectnb/proactiveai/data/captaincook4d/frames_cache
-  decode_workers: 12
-  tasks: [step_recognition, error_detection]
-  n_options: 5
-  min_duration_s: 4.0
-  # 11 recordings of activity 4 (smoke test) + 26 of 29 drawn at random across recipes (seed 0).
-  # Quoted: unquoted 4_2 is read by YAML as the integer 42.
-  # 22_40, 9_22, 8_45 dropped: their download was interrupted (not related to content).
-  recordings: ["4_2", "4_3", "4_22", "4_24", "4_30", "4_32", "4_35", "4_36", "4_40", "4_43", "4_44", "18_41", "1_14", "22_8", "9_8", "8_40", "15_30", "28_49", "27_34", "13_14", "5_22", "3_22", "26_29", "4_7", "25_48", "7_50", "23_17", "12_9", "29_5", "20_9", "21_50", "10_31", "2_13", "17_5", "16_44", "18_101", "1_143"]
+  name: hdepic
+  root: /projectnb/proactiveai/data/hd-epic
+  frame_cache: /projectnb/proactiveai/data/hd-epic/frames_cache
+  gaze_dir: /projectnb/proactiveai/data/hd-epic/gaze_projected
+  gaze_orientation: up
+  decode_workers: 4   # 12 parallel decoders ran out of memory on CaptainCook4D 4K
+  participants: ["P01", "P02"]   # fully downloaded at launch
+  # n = items drawn at random (seed 0) among those with an oracle box in the window.
+  tasks:
+    fine_grained_action_recognition: {n: 400, require_oracle: true}
+    fine_grained_how_recognition: {n: 400, require_oracle: true}
+    fine_grained_why_recognition: {n: 400, require_oracle: true}
 
 sampling:
-  fps: 1.0
-  max_frames: 32
+  frames_per_segment: 8   # segments are 1-3 s; 1 fps would give 1-3 frames
+  fps: 4.0                # passed to Qwen for its time positions; same for every condition
 
-# Token grids (rows, cols) of 28x28-pixel cells. One token = 2 frames x 28 x 28 px.
-# Full: 728x1288 = 26x46 = 1196 tokens per frame pair.
-full_grid: [26, 46]
+# Frames are 1408x1408 fisheye, resized to 1008x1008 = 36x36 = 1296 tokens per frame pair.
+full_grid: [36, 36]
 budgets:
-  b10: [8, 15]    # 120 tokens = 10.0% of full
-  b25: [13, 23]   # 299 tokens = 25.0% of full
-# Crop + coarse periphery, same totals: b10 = 24 + 96, b25 = 91 + 208.
+  b10: [11, 11]   # 121 tokens = 9.3% of full
+  b25: [18, 18]   # 324 tokens = 25.0% of full
 periphery_splits:
-  b10: {periphery: [4, 6], crop: [8, 12]}
-  b25: {periphery: [7, 13], crop: [13, 16]}
-
-gaze:
-  checkpoint: egogazelite_option_a.pt
-
-detector:
-  id: IDEA-Research/grounding-dino-tiny
-  box_threshold: 0.3
-  text_threshold: 0.25
+  b10: {periphery: [5, 5], crop: [8, 12]}     # 25 + 96 = 121
+  b25: {periphery: [8, 8], crop: [13, 20]}    # 64 + 260 = 324
 
 conditions:
   - {name: full, view: full}
   - {name: down_b10, view: downsample, budget: b10}
   - {name: down_b25, view: downsample, budget: b25}
+  - {name: oracle_b10, view: crop, signal: oracle, budget: b10}
+  - {name: oracle_b25, view: crop, signal: oracle, budget: b25}
+  - {name: oracle_per_b10, view: crop_periphery, signal: oracle, budget: b10}
+  - {name: oracle_per_b25, view: crop_periphery, signal: oracle, budget: b25}
   - {name: centre_b10, view: crop, signal: centre, budget: b10}
   - {name: centre_b25, view: crop, signal: centre, budget: b25}
-  - {name: random_b10, view: crop, signal: random, budget: b10}
-  - {name: random_b25, view: crop, signal: random, budget: b25}
-  - {name: gaze_b10, view: crop, signal: gaze_predicted, budget: b10}
-  - {name: gaze_b25, view: crop, signal: gaze_predicted, budget: b25}
-  - {name: object_b10, view: crop, signal: object, budget: b10}
-  - {name: object_b25, view: crop, signal: object, budget: b25}
-  - {name: gazeobj_b10, view: crop, signal: gaze_object, budget: b10}
-  - {name: gazeobj_b25, view: crop, signal: gaze_object, budget: b25}
-  - {name: centre_per_b10, view: crop_periphery, signal: centre, budget: b10}
-  - {name: centre_per_b25, view: crop_periphery, signal: centre, budget: b25}
-  - {name: gaze_per_b10, view: crop_periphery, signal: gaze_predicted, budget: b10}
-  - {name: gaze_per_b25, view: crop_periphery, signal: gaze_predicted, budget: b25}
-  - {name: object_per_b10, view: crop_periphery, signal: object, budget: b10}
-  - {name: object_per_b25, view: crop_periphery, signal: object, budget: b25}
-  - {name: gazeobj_per_b10, view: crop_periphery, signal: gaze_object, budget: b10}
-  - {name: gazeobj_per_b25, view: crop_periphery, signal: gaze_object, budget: b25}
