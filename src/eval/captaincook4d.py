@@ -140,16 +140,26 @@ def sample_times(seg: Segment, fps: float, max_frames: int) -> np.ndarray:
 
 
 def _decode(video_path: str, times: np.ndarray, out_hw: tuple[int, int]) -> np.ndarray:
-    cap = cv2.VideoCapture(video_path)
+    """Decode RGB frames at the given times with the ffmpeg binary, one process per frame.
+
+    OpenCV's in-process decoder got jobs killed for memory on some 4K HEVC files
+    (exit 137 at the same spot three times). A separate ffmpeg process per frame
+    keeps memory bounded and turns a bad spot into a clear error for that frame.
+    """
+    import subprocess
+
+    import imageio_ffmpeg
+
+    exe = imageio_ffmpeg.get_ffmpeg_exe()
     H, W = out_hw
     frames = []
     for t in times:
-        cap.set(cv2.CAP_PROP_POS_MSEC, float(t) * 1000.0)
-        ok, f = cap.read()
-        if not ok:
-            raise RuntimeError(f"cannot read {video_path} at {t:.2f}s")
-        frames.append(cv2.resize(cv2.cvtColor(f, cv2.COLOR_BGR2RGB), (W, H), interpolation=cv2.INTER_AREA))
-    cap.release()
+        cmd = [exe, "-v", "error", "-threads", "2", "-ss", f"{float(t):.3f}", "-i", video_path,
+               "-frames:v", "1", "-vf", f"scale={W}:{H}:flags=area", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"]
+        out = subprocess.run(cmd, capture_output=True, timeout=120)
+        if out.returncode != 0 or len(out.stdout) != H * W * 3:
+            raise RuntimeError(f"ffmpeg failed on {video_path} at {t:.2f}s: {out.stderr.decode()[-300:]}")
+        frames.append(np.frombuffer(out.stdout, np.uint8).reshape(H, W, 3))
     return np.stack(frames)
 
 
