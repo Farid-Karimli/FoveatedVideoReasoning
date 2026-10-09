@@ -143,3 +143,50 @@ Run 078b8b11, one L40S, about 10 hours expected.
   and reused. Relaunched as run 025afbdb.
 - Step 2 (oracle pass) set up on HD-EPIC participants P01 and P02, the two whose
   videos had fully downloaded. Being checked with a short GPU test first.
+## 2026-10-09: full map, third try also killed (out of memory)
+- Run 025afbdb: even with 4 video readers, pulling frames from the 4K videos
+  inside the GPU job used 20 GB and the job was killed. No item scored. Each try
+  kept its frames, so 324 of 511 segments are now cached.
+- Fix: frames are now pulled in a separate CPU batch job with more memory
+  (scripts/prepare_frames.py, 2 readers). The GPU run starts after it and only
+  reads the cached pictures.
+- Step 2 (oracle pass, HD-EPIC P01-P02) started: 592 questions (581 clips).
+- Frame extraction itself also died twice at the same place (end of recording
+  18_101), even with plenty of memory requested. Switching from OpenCV's
+  decoder to the standalone ffmpeg program (one process per frame) fixed it:
+  all 511 segments extracted. Full map relaunched as run 977f611c.
+
+## 2026-10-09: step 2 (oracle pass) done, HD-EPIC P01-P02
+
+Run d9b31bd7. 592 questions from HD-EPIC's fine-grained action set, each with
+an annotated object box inside its time window. "Oracle crop" = a crop around
+that box. 8 frames per clip, full frame 1008x1008 (1296 tokens per frame pair).
+
+Accuracy, with 95% ranges. "vs shrunk" = oracle crop minus shrunk whole frame
+on the same questions, at the same token count:
+
+| Question type (n) | Full | Shrunk 10% | Oracle 10% | vs shrunk | Shrunk 25% | Oracle 25% | vs shrunk |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Which action (400) | 53.2 | 48.7 | 50.7 | +2.0 [-2.5, +6.2] | 50.5 | 55.7 | +5.2 [+1.3, +9.3] |
+| How was it done (146) | 37.7 | 32.9 | 40.4 | +7.5 [+0.7, +14.4] | 33.6 | 39.0 | +5.5 [-2.1, +13.7] |
+| Why was it done (46) | 52.2 | 41.3 | 39.1 | -2.2 [-10.9, +6.5] | 39.1 | 45.7 | +6.5 [-4.3, +17.4] |
+
+Oracle crop + a small shrunk whole frame (same total tokens), 25% budget:
+55.7 (action), 43.2 (how, +9.6 [+2.1, +17.1] over shrunk), 45.7 (why).
+
+What this says, plainly:
+- The stop rule in CLAUDE.md does not fire: a crop around the true evidence
+  does beat shrinking the frame, at the same token count, on the two
+  local-evidence question types. So foveation has a ceiling here.
+- The ceiling is small: about 5 to 10 points. At 25% of the tokens the oracle
+  crop even matches or beats the full frame (55.7 vs 53.2 on "which action").
+- On "why" questions (46 items, fewer than 100) there is no clear gain, which
+  fits the taxonomy's guess that "why" needs context beyond the region.
+- Why the ceiling is small: a plain centre crop already overlaps the evidence
+  box in 75% of frames at 10% tokens and 94% at 25%. In this egocentric kitchen
+  video, the handled object is usually near the middle of the view. The evidence
+  box is small (median 4% of the frame).
+- Caveats: two participants only (P01, P02); the oracle box marks the moved
+  object at pick-up or put-down, not all the evidence; model is Qwen2.5-VL-7B only.
+
+Check-in with Farid (CLAUDE.md asks for one after step 2): continuing, as asked.

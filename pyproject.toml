@@ -10,6 +10,7 @@ dependencies = [
     "accelerate>=1.5",
     "timm>=1.0",
     "opencv-python-headless>=4.9",
+    "imageio-ffmpeg>=0.5",
     "numpy>=1.26,<2.3",
     "pandas>=2.2",
     "pyyaml>=6.0",
