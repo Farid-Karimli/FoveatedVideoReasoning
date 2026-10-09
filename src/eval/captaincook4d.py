@@ -88,6 +88,10 @@ def _float(s: str) -> float:
 def load_segments(root: str, recordings: list[str], min_duration: float) -> list[Segment]:
     rows = list(csv.reader(open(Path(root) / "annotations/annotation_csv/error_annotations.csv")))
     head = rows[0]
+    known = {r[0] for r in rows[1:]}
+    bad = [r for r in recordings if not isinstance(r, str) or r not in known]
+    if bad:
+        raise ValueError(f"unknown recording ids (quote them in YAML): {bad}")
     type_cols = list(range(6, len(head), 2))
     segs = []
     for r in rows[1:]:
@@ -98,6 +102,8 @@ def load_segments(root: str, recordings: list[str], min_duration: float) -> list
             continue
         types = [head[i] for i in type_cols if r[i] == "1"]
         segs.append(Segment(r[0], r[1], t0, t1, _clean(r[4]), types if r[5] == "True" else []))
+    if not segs:
+        raise ValueError("no step segments selected")
     return segs
 
 
