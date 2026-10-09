@@ -133,3 +133,13 @@ Run 078b8b11, one L40S, about 10 hours expected.
   artifacts/checks/hdepic_gaze_projection_check.jpg). Gaze for all videos will be
   projected once the HD-EPIC download finishes (68 of 156 videos so far; the
   first download job hit its 12 h limit, a second one is running).
+
+## 2026-10-09: full map, third try also killed (out of memory)
+
+- Run 025afbdb: even with 4 video readers, pulling frames from the 4K videos
+  inside the GPU job used 20 GB and the job was killed. No item scored. Each try
+  kept its frames, so 324 of 511 segments are now cached.
+- Fix: frames are now pulled in a separate CPU batch job with more memory
+  (scripts/prepare_frames.py, 2 readers). The GPU run starts after it and only
+  reads the cached pictures.
+- Step 2 (oracle pass, HD-EPIC P01-P02) started: 592 questions (581 clips).
