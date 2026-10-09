@@ -79,7 +79,9 @@ says what we did about it for now. Farid decides the real fix.
     necessarily all the evidence, and it is held fixed over the 1-3 s window).
   - Gaze: Aria MPS yaw/pitch in the glasses' frame, 10 Hz, not pixels. Projected
     into the MP4 with each video's camera calibration, read from the first 200 MB
-    of its VRS file (scripts/prep_hdepic_gaze.py). Orientation (raw vs upright)
-    to be checked by eye.
+    of its VRS file (scripts/prep_hdepic_gaze.py). Orientation checked by eye on
+    2026-10-09 (6 frames of P01-20240202-110250): the upright projection lands on
+    the hands and the object being handled; the raw one lands on background. We
+    use upright.
   - Videos are 1408x1408 fisheye. Segments are 1-10 s, so we take a fixed 8
     frames per segment instead of 1 fps (1 fps would give 1-3 frames).

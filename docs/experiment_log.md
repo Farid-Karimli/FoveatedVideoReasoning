@@ -120,3 +120,16 @@ Run 078b8b11, one L40S, about 10 hours expected.
   gaze, named objects, gaze+objects; and each pointing crop again with a small
   shrunk whole frame added (crop + periphery), all at the same token total.
   So this run also covers step 4 (periphery) for this dataset.
+
+## 2026-10-09: full map, first try answered nothing
+
+- Run 078b8b11 waited about 12 hours in the GPU queue, then finished at once
+  with 0 clips. Cause: in the config, recording names like 4_2 were not in
+  quotes, and YAML reads 4_2 as the number 42. No recording matched.
+- Fix: names are quoted, and the script now stops with an error if a recording
+  name is unknown or no clips are selected. Relaunched as run 8f545c7b.
+- HD-EPIC gaze check: the projected gaze lands on the hands and the object
+  being handled in all 6 test frames (picture saved under
+  artifacts/checks/hdepic_gaze_projection_check.jpg). Gaze for all videos will be
+  projected once the HD-EPIC download finishes (68 of 156 videos so far; the
+  first download job hit its 12 h limit, a second one is running).
